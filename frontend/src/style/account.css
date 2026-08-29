@@ -1,0 +1,152 @@
+.account-page {
+    min-height: 65vh;
+    padding: 42px 20px 64px;
+    background: #f8f8f8;
+}
+
+.account-container {
+    width: min(720px, 100%);
+    margin: 0 auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 22px rgba(0, 0, 0, .09);
+}
+
+.account-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.account-avatar {
+    display: grid;
+    width: 62px;
+    height: 62px;
+    place-items: center;
+    border-radius: 50%;
+    background: #fff2e5;
+    color: #ff6b00;
+}
+
+.account-header h1 {
+    margin: 0 0 5px;
+    color: #111111;
+    font-size: 1.45rem;
+    letter-spacing: -.02em;
+}
+
+.account-email {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    color: #666;
+    font-size: .9rem;
+}
+
+.account-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 22px 0;
+}
+
+.account-detail {
+    display: grid;
+    gap: 5px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #f8f8f8;
+}
+
+.account-detail span {
+    color: #888;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.account-detail strong {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #111111;
+    font-size: .96rem;
+}
+
+.account-detail .verified {
+    color: #237a2a;
+}
+
+.account-detail .unverified {
+    color: #b06018;
+}
+
+.account-actions {
+    display: grid;
+    gap: 12px;
+    padding-top: 8px;
+}
+
+.account-action {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    color: #ff6b00;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+    transition: border-color .18s ease, background .18s ease;
+}
+
+.account-action:hover {
+    border-color: #ff6b00;
+    background: #fff8f0;
+}
+
+.account-action span {
+    display: grid;
+    gap: 3px;
+}
+
+.account-action strong {
+    color: #111111;
+    font-size: .96rem;
+}
+
+.account-action small {
+    color: #666;
+    font-size: .83rem;
+}
+
+.account-logout {
+    color: #d32f2f;
+}
+
+.account-logout:hover {
+    border-color: #ff6b6b;
+    background: #ffebee;
+}
+
+@media (max-width: 560px) {
+    .account-page {
+        padding: 24px 14px 45px;
+    }
+
+    .account-container {
+        padding: 22px 18px;
+    }
+
+    .account-details {
+        grid-template-columns: 1fr;
+    }
+}
