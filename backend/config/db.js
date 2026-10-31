@@ -10,8 +10,9 @@ const connectDB = async () => {
         const finalMongoUri = baseUri.endsWith('/gocart') ? `${baseUri}${query}` : `${baseUri}/gocart${query}`;
 
         await mongoose.connect(finalMongoUri);
-        console.log("MongoDB connected to gocart");
-    } catch (error) {
+        console.log("MongoDB connected to GoCart");
+    } 
+    catch (error) {
         console.error("Error connecting to MongoDB:", error.message);
         process.exit(1);
     }

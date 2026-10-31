@@ -1,5 +1,5 @@
-const Product = require("../models/Product");
-const cloudinary = require("../config/cloudinary").v2;
+const Product = require("../routes/models/Product");
+const cloudinary = require("../config/cloudinary");
 
 // get all products
 const getAllProducts = async (req, res) => {
@@ -10,7 +10,7 @@ const getAllProducts = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
-    // get product by id
+// get product by id
 
 const getProductById = async (req, res) => {
     try {
@@ -74,7 +74,7 @@ const updateProduct = async (req, res) => {
             const result = await cloudinary.uploader.upload(image.path);
             imageUrl = result.secure_url;
             product.imageUrl = imageUrl;
-        }else{
+        } else {
             product.imageUrl = product.imageUrl;
         }
         await product.save();

@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../routes/models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
@@ -48,7 +48,7 @@ const registerUser = async (req, res) => {
             message: "Enter the code we emailed you to finish creating your account",
         });
     } catch (error) {
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error ! user not register" });
     }
 }
 
@@ -142,7 +142,7 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ message: "User not found" });
         }
     }
-    catch(err){
+    catch (err) {
         res.status(500).json({ message: "Server error" });
     }
 }

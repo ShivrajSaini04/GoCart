@@ -1,7 +1,7 @@
 // API Service for GoCart Backend
 import { readToken } from './authStorage';
 
-// the backend listens on port 3000; override with VITE_API_URL when it runs elsewhere
+// the backend listens on port 8080; override with VITE_API_URL when it runs elsewhere
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 const request = async (path, { method = 'GET', body, auth = false } = {}) => {
@@ -79,7 +79,23 @@ export const apiService = {
         request('/payment/order', { method: 'POST', auth: true, body: { amount } }),
 
     verifyPayment: (payment) =>
-        request('/payment/verify', { method: 'POST', auth: true, body: payment })
+        request('/payment/verify', { method: 'POST', auth: true, body: payment }),
+
+    // Products (admin) — multipart/form-data for image upload
+    createProduct: (formData) =>
+        fetch(`${API_BASE_URL}/products`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${readToken()}`
+            },
+            body: formData
+        }).then(async (response) => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(data?.message || 'Failed to create product');
+            }
+            return data;
+        })
 };
 
 export default apiService;

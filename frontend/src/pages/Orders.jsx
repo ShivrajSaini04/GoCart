@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { PackageSearch } from 'lucide-react';
+import { PackageSearch, ArrowLeft } from 'lucide-react';
 import { formatPrice } from '../utils/price';
 import apiService from '../services/api';
 import '../style/orders.css';

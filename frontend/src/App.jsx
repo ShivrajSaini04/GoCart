@@ -11,6 +11,7 @@ import VerifyOtp from './pages/VerifyOtp';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import Account from './pages/Account';
+import AddProduct from './pages/AddProduct';
 import About from './pages/About';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
@@ -40,6 +41,7 @@ function App() {
         <Route path="/checkout" element={<ProtectedRoute requireVerified><Checkout /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/admin/add-product" element={<ProtectedRoute requireAdmin><AddProduct /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
