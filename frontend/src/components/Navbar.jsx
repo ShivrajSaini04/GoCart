@@ -1,5 +1,5 @@
 import {
-    Search, Heart, UserRound, ShoppingCart, LogOut, TruckElectric
+    Search, Heart, UserRound, ShoppingCart, LogOut, TruckElectric, LayoutDashboard
 } from "lucide-react";
 
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -33,13 +33,14 @@ const Navbar = () => {
     const handleLogOut = () => {
         dispatch(logout());
         navigate('/login');
-    }
+    };
 
     const handleSearch = (event) => {
         event.preventDefault();
         const term = event.target.elements.search.value.trim();
         navigate(term ? `/products?search=${encodeURIComponent(term)}` : '/products');
-    }
+    };
+
     return (
         <header className="navbar-wrapper">
 
@@ -73,12 +74,7 @@ const Navbar = () => {
                 {/* Right Section */}
                 <div className="navbar-actions">
 
-                    {/* <NavLink to="/wishlist" className="nav-action">
-                        <Heart size={20} />
-                        <span>Wishlist</span>
-                    </NavLink> */}
-
-                    {/*  Cart component */}
+                    {/* Cart component */}
                     <NavLink to="/cart" className="nav-action cart-action">
                         <ShoppingCart size={21} />
                         <span>Cart</span>
@@ -88,6 +84,13 @@ const Navbar = () => {
 
                     {user ? (
                         <>
+                            {user.role === 'admin' && (
+                                <NavLink to="/admin/dashboard" className="nav-action">
+                                    <LayoutDashboard size={20} />
+                                    <span>Admin</span>
+                                </NavLink>
+                            )}
+
                             <NavLink to="/account" className="nav-action">
                                 <UserRound size={20} />
                                 <span>{user.name.split(" ")[0]}</span>
@@ -104,8 +107,6 @@ const Navbar = () => {
                             <span>Login</span>
                         </NavLink>
                     )}
-
-                    
 
                 </div>
             </div>

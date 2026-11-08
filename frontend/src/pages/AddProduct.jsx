@@ -1,272 +1,563 @@
-﻿import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Package,
+  IndianRupee,
+  Layers,
+  Image as ImageIcon,
+  Sparkles,
+  Eye,
+  Check
+} from 'lucide-react';
 import apiService from '../services/api';
 import '../style/addProduct.css';
 
 const AddProduct = () => {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-    const [form, setForm] = useState({
-        name: '',
-        description: '',
-        price: '',
-        category: '',
-        stock: '',
-        image: null,
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'Men',
+    stock: '10',
+    image: null,
+  });
+
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageMeta, setImageMeta] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [createdProduct, setCreatedProduct] = useState(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const processFile = (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file (JPG, PNG, WEBP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size exceeds 5MB limit.');
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, image: file }));
+    setImagePreview(URL.createObjectURL(file));
+    setImageMeta({
+      name: file.name,
+      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
     });
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const [submitting, setSubmitting] = useState(false); const [uploading, setUploading] = useState(false);
+    setError('');
+  };
 
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-        setError('');
-        setSuccess('');
-    };
+  const handleFileInput = (e) => {
+    const file = e.target.files?.[0];
+    processFile(file);
+  };
 
-    const handleFileChange = (event) => {
-        setForm((prev) => ({ ...prev, image: event.target.files?.[0] || null }));
-        setError('');
-        setSuccess('');
-    };
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
-    const removeImage = () => {
-        setForm((prev) => ({ ...prev, image: null }));
-    };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
 
-    const previewImage = () => {
-        if (!form.image) return null;
-        return URL.createObjectURL(form.image);
-    };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    processFile(file);
+  };
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setError('');
-        setSuccess('');
-        setSubmitting(true);
+  const removeImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setForm((prev) => ({ ...prev, image: null }));
+    setImagePreview(null);
+    setImageMeta(null);
+  };
 
-        if (!form.name.trim()) {
-            setError('Product name is required.');
-            setSubmitting(false);
-            return;
-        }
-        if (!form.description.trim()) {
-            setError('Description is required.');
-            setSubmitting(false);
-            return;
-        }
-        if (!form.price || Number(form.price) <= 0) {
-            setError('Enter a valid price.');
-            setSubmitting(false);
-            return;
-        }
-        if (!form.category) {
-            setError('Please select a category.');
-            setSubmitting(false);
-            return;
-        }
-        if (!form.stock || Number(form.stock) < 0) {
-            setError('Enter a valid stock number.');
-            setSubmitting(false);
-            return;
-        }
-        if (!form.image) {
-            setError('Please upload a product image.');
-            setSubmitting(false);
-            return;
-        }
+  const resetForm = () => {
+    removeImage();
+    setForm({
+      name: '',
+      description: '',
+      price: '',
+      category: 'Men',
+      stock: '10',
+      image: null,
+    });
+    setCreatedProduct(null);
+    setError('');
+  };
 
-        try {
-            const formData = new FormData();
-            formData.append('name', form.name.trim());
-            formData.append('description', form.description.trim());
-            formData.append('price', Number(form.price));
-            formData.append('category', form.category);
-            formData.append('stock', Number(form.stock));
-            formData.append('image', form.image);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-            await apiService.createProduct(formData);
+    const trimmedName = form.name.trim();
+    const trimmedDesc = form.description.trim();
+    const numPrice = Number(form.price);
+    const numStock = Number(form.stock);
 
-            setSuccess('Product added successfully!');
-            setForm({
-                name: '',
-                description: '',
-                price: '',
-                category: '',
-                stock: '',
-                image: null,
-            });
-        } catch (err) {
-            setError(err.message || 'Failed to add product. Please try again.');
-        } finally {
-            setSubmitting(false);
-            setUploading(false);
-        }
-    };
+    if (!trimmedName) {
+      setError('Please enter a sneaker product name.');
+      return;
+    }
 
-    return (
-        <main className='add-product-page'>
-            <header className='add-product-nav'>
-                <Link to='/admin' className='back-btn'>
-                    <ArrowLeft size={18} /> Back to Admin
-                </Link>
-                <span className='admin-badge'>Admin</span>
-            </header>
+    if (!form.category) {
+      setError('Please select a target category (Men / Women).');
+      return;
+    }
 
-            <div className='add-product-form-container'>
-                {error && (
-                    <div className='alert alert-error'>
-                        <AlertCircle size={20} />
-                        <span>{error}</span>
-                    </div>
-                )}
-                {success && (
-                    <div className='alert alert-success'>
-                        <CheckCircle size={20} />
-                        <span>{success}</span>
-                    </div>
-                )}
+    if (!form.price || isNaN(numPrice) || numPrice <= 0) {
+      setError('Please enter a valid price in INR.');
+      return;
+    }
 
-                <form className='add-product-form' onSubmit={handleSubmit} encType='multipart/form-data'>
-                    <div className='form-row'>
-                        <div className='form-group'>
-                            <label htmlFor='name'>Product Name <span className='required'>*</span></label>
-                            <input
-                                type='text'
-                                id='name'
-                                name='name'
-                                value={form.name}
-                                onChange={handleChange}
-                                placeholder='e.g. Nike Air Zoom'
-                                required
-                                disabled={submitting}
-                            />
-                        </div>
+    if (form.stock === '' || isNaN(numStock) || numStock < 0) {
+      setError('Please enter a valid inventory stock count.');
+      return;
+    }
 
-                        <div className='form-group'>
-                            <label htmlFor='category'>Category <span className='required'>*</span></label>
-                            <select
-                                id='category'
-                                name='category'
-                                value={form.category}
-                                onChange={handleChange}
-                                required
-                                disabled={submitting}
-                            >
-                                <option value=''>Select category</option>
-                                <option value='Men'>Men</option>
-                                <option value='Women'>Women</option>
-                            </select>
-                        </div>
+    if (!trimmedDesc) {
+      setError('Please provide a short description for this sneaker.');
+      return;
+    }
 
-                        <div className='form-group'>
-                            <label htmlFor='price'>Price () <span className='required'>*</span></label>
-                            <input
-                                type='number'
-                                id='price'
-                                name='price'
-                                value={form.price}
-                                onChange={handleChange}
-                                placeholder='0.00'
-                                min='0'
-                                step='0.01'
-                                required
-                                disabled={submitting}
-                            />
-                        </div>
-                    </div>
+    if (!form.image) {
+      setError('Please upload a product photograph.');
+      return;
+    }
 
-                    <div className='form-group'>
-                        <label htmlFor='stock'>Stock Quantity <span className='required'>*</span></label>
-                        <input
-                            type='number'
-                            id='stock'
-                            name='stock'
-                            value={form.stock}
-                            onChange={handleChange}
-                            placeholder='0'
-                            min='0'
-                            required
-                            disabled={submitting}
-                        />
-                    </div>
+    setSubmitting(true);
 
-                    <div className='form-group'>
-                        <label htmlFor='description'>Description <span className='required'>*</span></label>
-                        <textarea
-                            id='description'
-                            name='description'
-                            value={form.description}
-                            onChange={handleChange}
-                            placeholder='Describe the product...'
-                            rows={5}
-                            required
-                            disabled={submitting}
-                        />
-                    </div>
+    try {
+      const formData = new FormData();
+      formData.append('name', trimmedName);
+      formData.append('description', trimmedDesc);
+      formData.append('price', numPrice);
+      formData.append('category', form.category);
+      formData.append('stock', numStock);
+      formData.append('image', form.image);
 
-                    <div className='form-group image-upload'>
-                        <label htmlFor='image'>
-                            Product Image <span className='required'>*</span>
-                        </label>
-                        <div className='image-input-wrapper'>
-                            <input
-                                type='file'
-                                id='image'
-                                name='image'
-                                accept='image/*'
-                                onChange={handleFileChange}
-                                disabled={submitting}
-                            />
-                            {!form.image ? (
-                                <div className='image-placeholder'>
-                                    <Upload size={28} />
-                                    <p>Click to upload product image</p>
-                                    <p className='image-hint'>Supports JPG, PNG, WEBP (max 5MB)</p>
-                                </div>
-                            ) : (
-                                <div className='image-preview'>
-                                    <img src={previewImage()} alt='Preview' />
-                                    <button
-                                        type='button'
-                                        className='remove-image'
-                                        onClick={removeImage}
-                                        aria-label='Remove image'
-                                        disabled={submitting}
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+      const response = await apiService.createProduct(formData);
+      setCreatedProduct(response);
+    } catch (err) {
+      setError(err.message || 'Failed to upload product. Check backend connection.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-                    <button type='submit' className='submit-btn' disabled={submitting}>
-                        {submitting ? (
-                            <>
-                                <span className='spin' /> Adding product...
-                            </>
-                        ) : (
-                            <>
-                                <Upload size={18} /> Add Product
-                            </>
-                        )}
-                    </button>
+  const numericPrice = Number(form.price) || 0;
+  const numericStock = Number(form.stock) || 0;
 
-                    <div className='form-actions'>
-                        <Link to='/admin' className='secondary-btn'>
-                            <ArrowLeft size={18} /> Cancel
-                        </Link>
-                    </div>
-                </form>
+  return (
+    <div className="add-product-page">
+      {/* ── Top Header ── */}
+      <header className="add-product-header">
+        <div className="add-product-header-inner">
+          <div className="add-product-header-left">
+            <Link to="/admin/dashboard" className="add-product-back-btn">
+              <ArrowLeft size={16} /> Back to Dashboard
+            </Link>
+            <div>
+              <div className="add-product-breadcrumb">
+                <Link to="/admin/dashboard">Admin</Link>
+                <span className="add-product-breadcrumb-sep">/</span>
+                <Link to="/admin/dashboard">Products</Link>
+                <span className="add-product-breadcrumb-sep">/</span>
+                <span>Add Sneaker</span>
+              </div>
+              <h1 className="add-product-header-title">Add New Sneaker</h1>
             </div>
-        </main>
-    );
+          </div>
+          <div>
+            <span className="add-product-badge">
+              <Sparkles size={14} /> GoCart Inventory
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="add-product-container">
+        {/* ── Success Screen ── */}
+        {createdProduct ? (
+          <div className="add-product-success-card">
+            <div className="success-icon-badge">
+              <CheckCircle2 size={40} />
+            </div>
+            <h2>Sneaker Published Successfully!</h2>
+            <p>
+              <strong>{createdProduct.name}</strong> has been added to the GoCart catalogue with{' '}
+              {createdProduct.stock} pairs in stock at ₹
+              {Number(createdProduct.price).toLocaleString('en-IN')}.
+            </p>
+            <div className="success-actions-row">
+              <button
+                type="button"
+                className="btn-primary-custom"
+                onClick={resetForm}
+              >
+                <Package size={18} /> Add Another Sneaker
+              </button>
+              <Link to="/admin/dashboard" className="btn-secondary-custom">
+                Go to Dashboard
+              </Link>
+            </div>
+          </div>
+        ) : (
+          /* ── Main Form Grid ── */
+          <form onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className="add-product-alert add-product-alert-error" role="alert">
+                <AlertCircle size={20} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="add-product-grid">
+              {/* ── Left Column: Form Fields ── */}
+              <div className="add-product-form-col">
+                {/* Card 1: Sneaker Information */}
+                <section className="add-product-card">
+                  <div className="add-product-card-header">
+                    <div className="add-product-card-icon">
+                      <Layers size={20} />
+                    </div>
+                    <div>
+                      <h2 className="add-product-card-title">Sneaker Details</h2>
+                      <p className="add-product-card-subtitle">
+                        Brand, model name, and category classification
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="form-group-custom">
+                    <label className="form-label-custom" htmlFor="product-name">
+                      <span>
+                        Sneaker Name <span className="required-star">*</span>
+                      </span>
+                      <span className="form-label-hint">e.g. Nike Dunk Low Retro</span>
+                    </label>
+                    <input
+                      id="product-name"
+                      type="text"
+                      name="name"
+                      className="form-control-custom"
+                      placeholder="e.g. Nike Air Jordan 1 Retro High OG"
+                      value={form.name}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-row-2">
+                    <div className="form-group-custom">
+                      <label className="form-label-custom" htmlFor="product-category">
+                        <span>
+                          Category <span className="required-star">*</span>
+                        </span>
+                      </label>
+                      <select
+                        id="product-category"
+                        name="category"
+                        className="form-select-custom"
+                        value={form.category}
+                        onChange={handleChange}
+                        disabled={submitting}
+                        required
+                      >
+                        <option value="Men">Men's Sneakers</option>
+                        <option value="Women">Women's Sneakers</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group-custom">
+                      <label className="form-label-custom" htmlFor="product-stock">
+                        <span>
+                          Stock Inventory <span className="required-star">*</span>
+                        </span>
+                      </label>
+                      <input
+                        id="product-stock"
+                        type="number"
+                        name="stock"
+                        min="0"
+                        className="form-control-custom"
+                        placeholder="e.g. 24"
+                        value={form.stock}
+                        onChange={handleChange}
+                        disabled={submitting}
+                        required
+                      />
+                      <div className="form-field-info">
+                        {numericStock <= 0 ? (
+                          <span style={{ color: '#dc2626' }}>Will be marked Out of Stock</span>
+                        ) : numericStock < 5 ? (
+                          <span style={{ color: '#d97706' }}>Will show 'Only {numericStock} Left' badge</span>
+                        ) : (
+                          <span>In Stock inventory count</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group-custom">
+                    <label className="form-label-custom" htmlFor="product-desc">
+                      <span>
+                        Description & Story <span className="required-star">*</span>
+                      </span>
+                    </label>
+                    <textarea
+                      id="product-desc"
+                      name="description"
+                      rows={4}
+                      className="form-textarea-custom"
+                      placeholder="Describe the silhouette, materials (e.g. genuine leather, Zoom Air cushioning), colorway, and sizing recommendation..."
+                      value={form.description}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      required
+                    />
+                  </div>
+                </section>
+
+                {/* Card 2: Pricing */}
+                <section className="add-product-card">
+                  <div className="add-product-card-header">
+                    <div className="add-product-card-icon">
+                      <IndianRupee size={20} />
+                    </div>
+                    <div>
+                      <h2 className="add-product-card-title">Pricing</h2>
+                      <p className="add-product-card-subtitle">
+                        Retail selling price and shipping rule eligibility
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="form-group-custom">
+                    <label className="form-label-custom" htmlFor="product-price">
+                      <span>
+                        Price (INR) <span className="required-star">*</span>
+                      </span>
+                      <span className="form-label-hint">All inclusive of taxes</span>
+                    </label>
+                    <div className="form-input-prefix-wrapper">
+                      <span className="form-input-prefix">₹</span>
+                      <input
+                        id="product-price"
+                        type="number"
+                        name="price"
+                        min="1"
+                        step="1"
+                        className="form-control-custom"
+                        placeholder="8995"
+                        value={form.price}
+                        onChange={handleChange}
+                        disabled={submitting}
+                        required
+                      />
+                    </div>
+                    <div className="form-field-info shipping-tag">
+                      {numericPrice >= 999 ? (
+                        <>
+                          <Check size={14} /> Eligible for Free Shipping on GoCart (&gt; ₹999)
+                        </>
+                      ) : numericPrice > 0 ? (
+                        <>Standard shipping fee applies (&lt; ₹999 threshold)</>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              {/* ── Right Column: Media Upload & Live Storefront Preview ── */}
+              <div className="add-product-preview-col">
+                {/* Card 3: Image Upload */}
+                <section className="add-product-card">
+                  <div className="add-product-card-header">
+                    <div className="add-product-card-icon">
+                      <ImageIcon size={20} />
+                    </div>
+                    <div>
+                      <h2 className="add-product-card-title">Sneaker Image</h2>
+                      <p className="add-product-card-subtitle">
+                        Primary high-res photograph
+                      </p>
+                    </div>
+                  </div>
+
+                  {!imagePreview ? (
+                    <div
+                      className={`upload-zone ${isDragging ? 'has-drag' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                        onChange={handleFileInput}
+                        disabled={submitting}
+                      />
+                      <div className="upload-zone-content">
+                        <div className="upload-zone-icon">
+                          <Upload size={26} />
+                        </div>
+                        <p className="upload-zone-text">
+                          Drag sneaker photo here or <span>browse files</span>
+                        </p>
+                        <p className="upload-zone-sub">
+                          High-resolution photograph with clean or white background recommended
+                        </p>
+                        <div className="upload-badges">
+                          <span className="upload-format-badge">JPG</span>
+                          <span className="upload-format-badge">PNG</span>
+                          <span className="upload-format-badge">WEBP</span>
+                          <span className="upload-format-badge">MAX 5MB</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="image-preview-container">
+                        <img
+                          src={imagePreview}
+                          alt="Sneaker Preview"
+                          className="image-preview-img"
+                        />
+                        <div className="image-preview-overlay">
+                          <button
+                            type="button"
+                            className="image-preview-btn"
+                            onClick={removeImage}
+                            title="Remove image"
+                            aria-label="Remove image"
+                            disabled={submitting}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {imageMeta && (
+                        <div className="image-file-meta">
+                          <span className="image-file-meta-name">
+                            {imageMeta.name}
+                          </span>
+                          <span>{imageMeta.size}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {/* Card 4: Storefront Live Preview */}
+                <div className="storefront-preview-wrapper">
+                  <div className="storefront-preview-header">
+                    <span className="storefront-preview-label">
+                      <Eye size={13} style={{ marginRight: 5, verticalAlign: -1 }} /> Storefront Preview
+                    </span>
+                    <span className="storefront-preview-chip">Live Preview</span>
+                  </div>
+
+                  <div className="mock-product-card">
+                    <div className="mock-card-image">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Card preview" />
+                      ) : (
+                        <div className="mock-card-placeholder">
+                          <ImageIcon size={36} />
+                          <span>Photo will appear here</span>
+                        </div>
+                      )}
+                      <span className="mock-category-tag">
+                        {form.category}
+                      </span>
+                      {numericStock <= 0 ? (
+                        <span className="mock-stock-tag out-of-stock" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+                          Out of Stock
+                        </span>
+                      ) : numericStock < 5 ? (
+                        <span className="mock-stock-tag low-stock">
+                          Only {numericStock} Left
+                        </span>
+                      ) : (
+                        <span className="mock-stock-tag in-stock">
+                          In Stock
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mock-card-body">
+                      <h3 className="mock-card-title">
+                        {form.name.trim() || 'Sneaker Title'}
+                      </h3>
+                      <p className="mock-card-desc">
+                        {form.description.trim() || 'Sneaker description and material details...'}
+                      </p>
+                      <div className="mock-card-footer">
+                        <span className="mock-card-price">
+                          ₹{numericPrice > 0 ? numericPrice.toLocaleString('en-IN') : '0'}
+                        </span>
+                        <button type="button" className="mock-card-btn">
+                          Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Actions Bar ── */}
+            <div className="add-product-actions-bar">
+              <Link to="/admin/dashboard" className="btn-secondary-custom">
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                className="btn-primary-custom"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="btn-spinner" /> Uploading to Cloudinary & Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={17} /> Publish Sneaker to Store
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </main>
+    </div>
+  );
 };
 
 export default AddProduct;

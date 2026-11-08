@@ -17,26 +17,27 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  stock : {
+  stock: {
     type: Number,
     required: true
   },
-  imageUrl:{
+  imageUrl: {
     type: String,
     required: true
-  }, 
-   createdAt : {
+  },
+  createdAt: {
     type: Date,
     default: Date.now
   },
   rating: {
     type: Number,
     default: 0
-},
-numReviews: {
+  },
+  numReviews: {
     type: Number,
     default: 0
-}
+  }
 });
 
-module.exports = mongoose.model("Product", productSchema);
+const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
+module.exports = Product;
