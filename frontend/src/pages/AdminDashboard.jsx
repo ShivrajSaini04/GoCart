@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
@@ -6,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   Plus, Search, Pencil, Trash2, AlertTriangle, IndianRupee,
   Clock, CheckCircle2, ChevronLeft, ChevronRight, UserCircle,
-  Eye, MapPin, ExternalLink
+  Eye, MapPin, Check, Info, X
 } from 'lucide-react';
 import '../style/adminDashboard.css';
 
@@ -46,16 +47,38 @@ const AdminDashboard = () => {
 
   // Delete modal
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Status update modal
   const [statusOrder, setStatusOrder] = useState(null);
   const [newStatus, setNewStatus] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // View order full details modal
   const [viewOrder, setViewOrder] = useState(null);
 
+  // Logout Confirmation modal
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Popup Toast Notification { title, message, type: 'success' | 'error' | 'info' }
+  const [toast, setToast] = useState(null);
+
   const token = localStorage.getItem('gocartToken');
   const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // Auto-dismiss toast popup after 4 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const showToast = (message, title = 'Success', type = 'success') => {
+    setToast({ message, title, type });
+  };
 
   // ─── Fetch ────────────────────────────────────────────
   const fetchAll = async () => {
@@ -127,14 +150,25 @@ const AdminDashboard = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ─── Actions ──────────────────────────────────────────
+  // ─── Actions & Modals ─────────────────────────────────
   const handleDeleteProduct = async () => {
     if (!deleteTarget) return;
+    const targetName = deleteTarget.name;
+    setDeleting(true);
     try {
-      await fetch(`${API_BASE}/products/${deleteTarget._id}`, { method: 'DELETE', headers: authHeader });
-      setProducts(prev => prev.filter(p => p._id !== deleteTarget._id));
-    } catch { /* silent */ }
-    setDeleteTarget(null);
+      const res = await fetch(`${API_BASE}/products/${deleteTarget._id}`, { method: 'DELETE', headers: authHeader });
+      if (res.ok) {
+        setProducts(prev => prev.filter(p => p._id !== deleteTarget._id));
+        showToast(`"${targetName}" was permanently removed from the catalog.`, 'Product Deleted', 'success');
+      } else {
+        showToast('Server rejected the delete request.', 'Delete Failed', 'error');
+      }
+    } catch {
+      showToast('Network error while deleting product.', 'Delete Error', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
   const openEdit = (p) => {
@@ -156,30 +190,51 @@ const AdminDashboard = () => {
       if (res.ok) {
         const updated = await res.json();
         setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
+        showToast(`"${updated.name}" details updated successfully!`, 'Product Updated', 'success');
+        setEditProduct(null);
+      } else {
+        showToast('Failed to update product details on server.', 'Update Failed', 'error');
       }
-    } catch { /* silent */ }
-    setSaving(false);
-    setEditProduct(null);
+    } catch {
+      showToast('Network error while updating product.', 'Network Error', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleStatusUpdate = async () => {
     if (!statusOrder || !newStatus) return;
+    const orderIdShort = statusOrder._id?.slice(-6);
+    setUpdatingStatus(true);
     try {
-      await fetch(`${API_BASE}/orders/${statusOrder._id}/status`, {
+      const res = await fetch(`${API_BASE}/orders/${statusOrder._id}/status`, {
         method: 'PUT',
         headers: { ...authHeader, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      setOrders(prev => prev.map(o => o._id === statusOrder._id ? { ...o, status: newStatus } : o));
-      if (viewOrder && viewOrder._id === statusOrder._id) {
-        setViewOrder(prev => ({ ...prev, status: newStatus }));
+      if (res.ok) {
+        setOrders(prev => prev.map(o => o._id === statusOrder._id ? { ...o, status: newStatus } : o));
+        if (viewOrder && viewOrder._id === statusOrder._id) {
+          setViewOrder(prev => ({ ...prev, status: newStatus }));
+        }
+        showToast(`Order #${orderIdShort} status changed to ${newStatus.toUpperCase()}.`, 'Status Updated', 'success');
+        setStatusOrder(null);
+        setNewStatus('');
+      } else {
+        showToast('Server rejected the status update.', 'Update Failed', 'error');
       }
-    } catch { /* silent */ }
-    setStatusOrder(null);
-    setNewStatus('');
+    } catch {
+      showToast('Network error while updating order status.', 'Network Error', 'error');
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
-  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    dispatch(logout());
+    navigate('/login');
+  };
 
   // ─── Helpers ──────────────────────────────────────────
   const formatPrice = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
@@ -240,7 +295,11 @@ const AdminDashboard = () => {
             <UserCircle size={20} />
             <span className="admin-user-name">{user?.name || 'Admin'}</span>
           </div>
-          <button className="admin-btn-logout" onClick={handleLogout} title="Logout">
+          <button
+            className="admin-btn-logout"
+            onClick={() => setShowLogoutModal(true)}
+            title="Sign out of Admin Session"
+          >
             <LogOut size={18} />
           </button>
         </div>
@@ -506,10 +565,10 @@ const AdminDashboard = () => {
                     <td>{p.rating ? `${p.rating} ★` : '—'}</td>
                     <td>
                       <div className="admin-actions-cell">
-                        <button className="admin-btn-icon admin-btn-edit" onClick={() => openEdit(p)} title="Edit">
+                        <button className="admin-btn-icon admin-btn-edit" onClick={() => openEdit(p)} title="Edit sneaker details">
                           <Pencil size={16} />
                         </button>
-                        <button className="admin-btn-icon admin-btn-delete" onClick={() => setDeleteTarget(p)} title="Delete">
+                        <button className="admin-btn-icon admin-btn-delete" onClick={() => setDeleteTarget(p)} title="Delete sneaker">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -679,8 +738,8 @@ const AdminDashboard = () => {
         </section>
       )}
 
-      {/* ══════════════ VIEW ORDER DETAILS MODAL ══════════════ */}
-      {viewOrder && (
+      {/* ══════════════ VIEW ORDER DETAILS MODAL (PORTALED) ══════════════ */}
+      {viewOrder && typeof document !== 'undefined' && createPortal(
         <div className="admin-modal-overlay" onClick={() => setViewOrder(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 660 }}>
             <div className="admin-modal-header">
@@ -797,15 +856,21 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ══════════════ EDIT PRODUCT MODAL ══════════════ */}
-      {editProduct && (
+      {/* ══════════════ EDIT PRODUCT MODAL (PORTALED) ══════════════ */}
+      {editProduct && typeof document !== 'undefined' && createPortal(
         <div className="admin-modal-overlay" onClick={() => setEditProduct(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h3>Edit Product</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={17} />
+                </div>
+                <h3 style={{ margin: 0 }}>Edit Product Details</h3>
+              </div>
               <button className="admin-modal-close" onClick={() => setEditProduct(null)}>×</button>
             </div>
             <div style={{ padding: '22px 26px' }}>
@@ -841,45 +906,87 @@ const AdminDashboard = () => {
               <div className="admin-modal-actions">
                 <button className="admin-btn-secondary" onClick={() => setEditProduct(null)}>Cancel</button>
                 <button className="admin-btn-primary" disabled={saving} onClick={handleEditSave}>
-                  {saving ? 'Saving…' : 'Save Changes'}
+                  {saving ? 'Saving Changes…' : 'Save & Update Product'}
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ══════════════ DELETE CONFIRM MODAL ══════════════ */}
-      {deleteTarget && (
-        <div className="admin-modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="admin-modal admin-modal-small" onClick={e => e.stopPropagation()}>
+      {/* ══════════════ DELETE CONFIRM MODAL (PORTALED) ══════════════ */}
+      {deleteTarget && typeof document !== 'undefined' && createPortal(
+        <div className="admin-modal-overlay" onClick={() => !deleting && setDeleteTarget(null)}>
+          <div className="admin-modal admin-modal-small" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="admin-modal-header">
-              <h3>Delete Product</h3>
-              <button className="admin-modal-close" onClick={() => setDeleteTarget(null)}>×</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={18} />
+                </div>
+                <h3 style={{ margin: 0 }}>Delete Product</h3>
+              </div>
+              <button className="admin-modal-close" disabled={deleting} onClick={() => setDeleteTarget(null)}>×</button>
             </div>
             <div style={{ padding: '22px 26px' }}>
-              <p>Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.</p>
-              <div className="admin-modal-actions" style={{ marginTop: 20 }}>
-                <button className="admin-btn-secondary" onClick={() => setDeleteTarget(null)}>Cancel</button>
-                <button className="admin-btn-primary admin-btn-delete" onClick={handleDeleteProduct}>Delete</button>
+              {/* Preview Card */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, marginBottom: 16 }}>
+                <img
+                  src={deleteTarget.imageUrl}
+                  alt={deleteTarget.name}
+                  style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>{deleteTarget.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    Category: {deleteTarget.category} • Price: {formatPrice(deleteTarget.price)}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 600 }}>
+                    Stock: {deleteTarget.stock} units
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569', lineHeight: 1.5 }}>
+                Are you sure you want to permanently delete this sneaker? This action <strong>cannot be undone</strong> and will remove the item from the customer storefront immediately.
+              </p>
+              <div className="admin-modal-actions" style={{ marginTop: 22 }}>
+                <button className="admin-btn-secondary" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="admin-btn-primary admin-btn-delete"
+                  disabled={deleting}
+                  onClick={handleDeleteProduct}
+                >
+                  <Trash2 size={16} /> {deleting ? 'Deleting…' : 'Delete Sneaker'}
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ══════════════ STATUS UPDATE MODAL ══════════════ */}
-      {statusOrder && (
-        <div className="admin-modal-overlay" onClick={() => setStatusOrder(null)}>
+      {/* ══════════════ STATUS UPDATE MODAL (PORTALED) ══════════════ */}
+      {statusOrder && typeof document !== 'undefined' && createPortal(
+        <div className="admin-modal-overlay" onClick={() => !updatingStatus && setStatusOrder(null)}>
           <div className="admin-modal admin-modal-small" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h3>Update Order Status</h3>
-              <button className="admin-modal-close" onClick={() => setStatusOrder(null)}>×</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fff0e6', color: '#ff6b00', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={16} />
+                </div>
+                <h3 style={{ margin: 0 }}>Update Order Status</h3>
+              </div>
+              <button className="admin-modal-close" disabled={updatingStatus} onClick={() => setStatusOrder(null)}>×</button>
             </div>
             <div style={{ padding: '22px 26px' }}>
-              <p style={{ marginBottom: 16 }}>Order <strong>#{statusOrder._id?.slice(-6)}</strong> — {statusOrder.user?.name || statusOrder.address?.fullname || 'Customer'}</p>
+              <p style={{ marginBottom: 16, fontSize: '0.92rem', color: '#4a5568' }}>
+                Order <strong>#{statusOrder._id?.slice(-6)}</strong> placed by <strong>{statusOrder.user?.name || statusOrder.address?.fullname || 'Customer'}</strong>
+              </p>
               <div className="admin-form-group">
-                <label>New Status</label>
+                <label>Select New Delivery Status</label>
                 <select value={newStatus} onChange={e => setNewStatus(e.target.value)}>
                   <option value="pending">Pending</option>
                   <option value="shipped">Shipped</option>
@@ -887,13 +994,81 @@ const AdminDashboard = () => {
                 </select>
               </div>
               <div className="admin-modal-actions">
-                <button className="admin-btn-secondary" onClick={() => setStatusOrder(null)}>Cancel</button>
-                <button className="admin-btn-primary" onClick={handleStatusUpdate}>Update Status</button>
+                <button className="admin-btn-secondary" disabled={updatingStatus} onClick={() => setStatusOrder(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="admin-btn-primary"
+                  disabled={updatingStatus}
+                  onClick={handleStatusUpdate}
+                >
+                  {updatingStatus ? 'Updating…' : 'Confirm Status Update'}
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* ══════════════ LOGOUT CONFIRMATION MODAL (PORTALED) ══════════════ */}
+      {showLogoutModal && typeof document !== 'undefined' && createPortal(
+        <div className="admin-modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="admin-modal admin-modal-small" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff0e6', color: '#ff6b00', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LogOut size={18} />
+                </div>
+                <h3 style={{ margin: 0 }}>Confirm Sign Out</h3>
+              </div>
+              <button className="admin-modal-close" onClick={() => setShowLogoutModal(false)}>×</button>
+            </div>
+            <div style={{ padding: '22px 26px' }}>
+              <p style={{ margin: 0, fontSize: '0.92rem', color: '#4a5568', lineHeight: 1.5 }}>
+                Are you sure you want to end your GoCart admin session? You will be redirected to the login page.
+              </p>
+              <div className="admin-modal-actions" style={{ marginTop: 24 }}>
+                <button className="admin-btn-secondary" onClick={() => setShowLogoutModal(false)}>
+                  Stay Logged In
+                </button>
+                <button
+                  className="admin-btn-primary admin-btn-delete"
+                  style={{ background: '#ff6b00', boxShadow: '0 4px 14px rgba(255, 107, 0, 0.3)' }}
+                  onClick={confirmLogout}
+                >
+                  <LogOut size={16} /> Yes, Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ══════════════ TOAST NOTIFICATION POPUP MESSAGE (PORTALED) ══════════════ */}
+      {toast && typeof document !== 'undefined' && createPortal(
+        <div className={`admin-toast-popup admin-toast-${toast.type}`} role="alert">
+          <div className="admin-toast-icon">
+            {toast.type === 'success' ? <CheckCircle2 size={20} /> : toast.type === 'error' ? <AlertTriangle size={20} /> : <Info size={20} />}
+          </div>
+          <div className="admin-toast-body">
+            <div className="admin-toast-title">{toast.title}</div>
+            <div className="admin-toast-message">{toast.message}</div>
+          </div>
+          <button
+            type="button"
+            className="admin-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Close notification"
+          >
+            ×
+          </button>
+          <div className="admin-toast-progress" />
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 };

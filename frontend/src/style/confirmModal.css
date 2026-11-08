@@ -1,0 +1,181 @@
+/* =====================================================
+   GoCart - Unified Confirmation Modal
+   Matches exact popup design from user screenshot:
+   - Centered card with rounded corners & soft shadow
+   - Top circular icon with soft tinted background
+   - Bold title & descriptive subtitle text
+   - Cancel button (outline) + Filled action button
+   ===================================================== */
+
+.gocart-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(14, 16, 20, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999 !important;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: gocartModalFadeIn 0.2s ease forwards;
+}
+
+.gocart-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 34px 28px 28px;
+  text-align: center;
+  animation: gocartModalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  z-index: 1000000;
+  border: 1px solid rgba(230, 233, 240, 0.8);
+}
+
+.gocart-modal-icon-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  transition: transform 0.2s ease;
+}
+
+.gocart-modal-card:hover .gocart-modal-icon-circle {
+  transform: scale(1.05);
+}
+
+.gocart-modal-title {
+  margin: 0 0 10px;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: -0.02em;
+}
+
+.gocart-modal-message {
+  margin: 0 auto 28px;
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.55;
+  max-width: 340px;
+}
+
+.gocart-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+}
+
+.gocart-modal-btn-cancel {
+  flex: 1;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1.25px solid #dce1e8;
+  background: #ffffff;
+  color: #333d4d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.gocart-modal-btn-cancel:hover:not(:disabled) {
+  background: #f4f7fb;
+  border-color: #adb5bd;
+  color: #111111;
+}
+
+.gocart-modal-btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gocart-modal-btn-confirm {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.gocart-modal-btn-primary {
+  background: linear-gradient(135deg, #ff6b00 0%, #e65100 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(255, 107, 0, 0.35);
+}
+
+.gocart-modal-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 107, 0, 0.45);
+}
+
+.gocart-modal-btn-danger {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+}
+
+.gocart-modal-btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.45);
+}
+
+.gocart-modal-btn-confirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@keyframes gocartModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gocartModalScaleIn {
+  from {
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .gocart-modal-card {
+    padding: 28px 20px 22px;
+  }
+
+  .gocart-modal-title {
+    font-size: 1.3rem;
+  }
+
+  .gocart-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .gocart-modal-btn-cancel,
+  .gocart-modal-btn-confirm {
+    width: 100%;
+  }
+}

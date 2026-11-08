@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Search, Heart, UserRound, ShoppingCart, LogOut, TruckElectric, LayoutDashboard
 } from "lucide-react";
@@ -7,8 +8,10 @@ import logo from "../assets/logo1.png";
 import "../style/navbar.css";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/authSlice";
+import ConfirmModal from "./ConfirmModal";
 
 const Navbar = () => {
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const cartItem = useSelector((state) => state.cart.cartItem);
     const cartCount = cartItem.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const user = useSelector((state) => state.auth.user);
@@ -30,8 +33,9 @@ const Navbar = () => {
         { label: 'Best Sellers', to: '/products?sort=rating', isActive: activeSort === 'rating' },
     ];
 
-    const handleLogOut = () => {
+    const confirmLogOut = () => {
         dispatch(logout());
+        setShowLogoutModal(false);
         navigate('/login');
     };
 
@@ -96,7 +100,12 @@ const Navbar = () => {
                                 <span>{user.name.split(" ")[0]}</span>
                             </NavLink>
 
-                            <button type="button" className="nav-action nav-logout" onClick={handleLogOut}>
+                            <button
+                                type="button"
+                                className="nav-action nav-logout"
+                                onClick={() => setShowLogoutModal(true)}
+                                title="Sign out"
+                            >
                                 <LogOut size={20} />
                                 <span>Logout</span>
                             </button>
@@ -123,6 +132,21 @@ const Navbar = () => {
                     </Link>
                 ))}
             </nav>
+
+            {/* Unified Logout Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showLogoutModal}
+                title="Sign Out"
+                message="Are you sure you want to log out of your GoCart account?"
+                confirmText={<><LogOut size={16} /> Yes, Logout</>}
+                cancelText="Cancel"
+                icon={<LogOut size={26} />}
+                iconBg="#fff0e6"
+                iconColor="#ff6b00"
+                confirmVariant="primary"
+                onConfirm={confirmLogOut}
+                onCancel={() => setShowLogoutModal(false)}
+            />
 
         </header>
     );
